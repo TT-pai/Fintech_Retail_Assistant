@@ -7,30 +7,18 @@ from datetime import datetime, timedelta
 from loguru import logger
 import re
 
-from rag.embeddings import EmbeddingEngine
-from rag.vector_store import VectorStore, Document
-from rag.reranker import ReRanker
-
 
 class RAGRetriever:
     """RAG检索器"""
     
     def __init__(
         self,
-        vector_store: VectorStore,
-        reranker: Optional[ReRanker] = None,
+        vector_store,
+        reranker=None,
         top_k: int = 5
     ):
-        """
-        初始化检索器
-        
-        Args:
-            vector_store: 向量存储
-            reranker: 重排序器
-            top_k: 返回数量
-        """
         self.vector_store = vector_store
-        self.reranker = reranker or ReRanker()
+        self.reranker = reranker
         self.top_k = top_k
     
     def retrieve(
@@ -137,37 +125,21 @@ class HybridRetriever(RAGRetriever):
     
     def __init__(
         self,
-        vector_store: VectorStore,
-        reranker: Optional[ReRanker] = None,
+        vector_store,
+        reranker=None,
         top_k: int = 5,
         vector_weight: float = 0.7,
         keyword_weight: float = 0.3
     ):
-        """
-        初始化混合检索器
-        
-        Args:
-            vector_store: 向量存储
-            reranker: 重排序器
-            top_k: 返回数量
-            vector_weight: 向量检索权重
-            keyword_weight: 关键词检索权重
-        """
         super().__init__(vector_store, reranker, top_k)
         self.vector_weight = vector_weight
         self.keyword_weight = keyword_weight
         
-        # 构建关键词索引（内存版）
         self._keyword_index: Dict[str, List[str]] = {}
         self._doc_contents: Dict[str, str] = {}
     
-    def build_keyword_index(self, documents: List[Document]) -> None:
-        """
-        构建关键词索引
-        
-        Args:
-            documents: 文档列表
-        """
+    def build_keyword_index(self, documents: List) -> None:
+        """构建关键词索引"""
         import jieba
         
         self._keyword_index.clear()
@@ -176,10 +148,9 @@ class HybridRetriever(RAGRetriever):
         for doc in documents:
             self._doc_contents[doc.doc_id] = doc.content
             
-            # 分词
             words = jieba.lcut(doc.content)
             for word in words:
-                if len(word) > 1:  # 忽略单字
+                if len(word) > 1:
                     if word not in self._keyword_index:
                         self._keyword_index[word] = []
                     self._keyword_index[word].append(doc.doc_id)
@@ -324,20 +295,11 @@ class GraphRAGRetriever(RAGRetriever):
     
     def __init__(
         self,
-        vector_store: VectorStore,
+        vector_store,
         knowledge_graph,
-        reranker: Optional[ReRanker] = None,
+        reranker=None,
         top_k: int = 5
     ):
-        """
-        初始化GraphRAG检索器
-        
-        Args:
-            vector_store: 向量存储
-            knowledge_graph: 知识图谱实例
-            reranker: 重排序器
-            top_k: 返回数量
-        """
         super().__init__(vector_store, reranker, top_k)
         self.knowledge_graph = knowledge_graph
     
