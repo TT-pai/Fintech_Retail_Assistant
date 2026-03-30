@@ -1,0 +1,55 @@
+# 忽略环境变量文件
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 日志
+logs/
+*.log
+
+# 数据
+data/
+*.db
+*.sqlite
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 打包
+dist/
+build/
+*.egg-info/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# 向量数据库（云端重新构建）
+data/chroma/
+
+# 知识图谱缓存
+data/knowledge_graph/
+
+# 缓存
+__pycache__/
+*.pyc
