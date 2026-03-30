@@ -7,9 +7,12 @@ import json
 from typing import List, Dict, Any
 from loguru import logger
 
-from rag.embeddings import EmbeddingEngine, get_embedding_engine
-from rag.vector_store import VectorStore, Document
-from rag.knowledge_graph import KnowledgeGraph, build_default_knowledge_graph
+# 延迟导入，支持精简依赖环境
+from rag import (
+    EMBEDDING_AVAILABLE, 
+    VECTOR_STORE_AVAILABLE,
+    KNOWLEDGE_GRAPH_AVAILABLE
+)
 
 
 class KnowledgeBaseManager:
@@ -18,8 +21,8 @@ class KnowledgeBaseManager:
     def __init__(
         self,
         knowledge_base_path: str = None,
-        vector_store: VectorStore = None,
-        embedding_engine: EmbeddingEngine = None
+        vector_store=None,
+        embedding_engine=None
     ):
         """
         初始化知识库管理器
@@ -32,6 +35,8 @@ class KnowledgeBaseManager:
         self.knowledge_base_path = knowledge_base_path or os.path.dirname(__file__)
         self.vector_store = vector_store
         self.embedding_engine = embedding_engine
+        self.knowledge_graph = None
+        self._use_mock = False
     
     def initialize(self, use_mock_embedding: bool = False) -> None:
         """
@@ -40,13 +45,27 @@ class KnowledgeBaseManager:
         Args:
             use_mock_embedding: 是否使用Mock嵌入引擎
         """
+        self._use_mock = use_mock_embedding
+        
         # 初始化嵌入引擎
         if not self.embedding_engine:
-            self.embedding_engine = get_embedding_engine(use_mock=use_mock_embedding)
+            if use_mock_embedding or not EMBEDDING_AVAILABLE:
+                from rag.embeddings import MockEmbeddingEngine
+                self.embedding_engine = MockEmbeddingEngine()
+                logger.info("使用 Mock 嵌入引擎")
+            else:
+                from rag.embeddings import get_embedding_engine
+                self.embedding_engine = get_embedding_engine()
         
         # 初始化向量存储
         if not self.vector_store:
-            self.vector_store = VectorStore(embedding_engine=self.embedding_engine)
+            if use_mock_embedding or not VECTOR_STORE_AVAILABLE:
+                from rag.vector_store import MockVectorStore
+                self.vector_store = MockVectorStore()
+                logger.info("使用 Mock 向量存储")
+            else:
+                from rag.vector_store import VectorStore
+                self.vector_store = VectorStore(embedding_engine=self.embedding_engine)
         
         # 加载知识库数据
         self.load_all_knowledge()
@@ -83,7 +102,7 @@ class KnowledgeBaseManager:
         
         return total_docs
     
-    def _load_knowledge_file(self, filename: str) -> List[Document]:
+    def _load_knowledge_file(self, filename: str) -> List:
         """
         加载单个知识库文件
         
@@ -93,6 +112,8 @@ class KnowledgeBaseManager:
         Returns:
             文档列表
         """
+        from rag.vector_store import Document
+        
         filepath = os.path.join(self.knowledge_base_path, filename)
         
         if not os.path.exists(filepath):
@@ -136,20 +157,26 @@ class KnowledgeBaseManager:
     
     def init_knowledge_graph(self) -> None:
         """初始化知识图谱"""
-        graph_path = os.path.join(
-            os.path.dirname(self.knowledge_base_path), 
-            "data", 
-            "knowledge_graph"
-        )
-        
-        kg = KnowledgeGraph(storage_path=graph_path)
-        
-        # 如果图谱为空，构建默认图谱
-        if kg.graph.number_of_nodes() == 0:
-            kg = build_default_knowledge_graph()
-        
-        self.knowledge_graph = kg
-        logger.info(f"知识图谱初始化完成，节点数: {kg.graph.number_of_nodes()}")
+        try:
+            from rag.knowledge_graph import KnowledgeGraph, build_default_knowledge_graph
+            
+            graph_path = os.path.join(
+                os.path.dirname(self.knowledge_base_path), 
+                "data", 
+                "knowledge_graph"
+            )
+            
+            kg = KnowledgeGraph(storage_path=graph_path)
+            
+            # 如果图谱为空，构建默认图谱
+            if kg.graph.number_of_nodes() == 0:
+                kg = build_default_knowledge_graph()
+            
+            self.knowledge_graph = kg
+            logger.info(f"知识图谱初始化完成，节点数: {kg.graph.number_of_nodes()}")
+        except Exception as e:
+            logger.warning(f"知识图谱初始化失败: {e}")
+            self.knowledge_graph = None
     
     def search(self, query: str, top_k: int = 5, doc_type: str = None) -> List[Dict[str, Any]]:
         """
@@ -173,11 +200,11 @@ class KnowledgeBaseManager:
         """获取知识库统计信息"""
         stats = {
             "vector_store": {
-                "total_documents": self.vector_store.get_document_count()
+                "total_documents": self.vector_store.get_document_count() if self.vector_store else 0
             }
         }
         
-        if hasattr(self, "knowledge_graph"):
+        if self.knowledge_graph:
             stats["knowledge_graph"] = self.knowledge_graph.get_graph_stats()
         
         return stats

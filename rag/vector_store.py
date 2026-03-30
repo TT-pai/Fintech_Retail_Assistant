@@ -8,8 +8,6 @@ import os
 import json
 from loguru import logger
 
-from rag.embeddings import EmbeddingEngine
-
 
 class Document:
     """文档对象"""
@@ -53,7 +51,7 @@ class VectorStore:
         self,
         collection_name: str = "fintech_knowledge",
         persist_directory: Optional[str] = None,
-        embedding_engine: Optional[EmbeddingEngine] = None
+        embedding_engine = None
     ):
         """
         初始化向量存储
@@ -67,9 +65,14 @@ class VectorStore:
         self.persist_directory = persist_directory or os.path.join(
             os.path.dirname(__file__), "..", "data", "chroma"
         )
-        self.embedding_engine = embedding_engine or EmbeddingEngine()
+        self.embedding_engine = embedding_engine
         self._client = None
         self._collection = None
+        
+        # 延迟初始化嵌入引擎
+        if self.embedding_engine is None:
+            from rag.embeddings import get_embedding_engine
+            self.embedding_engine = get_embedding_engine(use_mock=True)
         
     @property
     def client(self):
@@ -107,6 +110,11 @@ class VectorStore:
             
             logger.info(f"向量存储初始化成功: {self.collection_name}, 文档数: {self._collection.count()}")
             
+        except ImportError:
+            raise ImportError(
+                "chromadb 未安装。请安装: pip install chromadb\n"
+                "或使用 MockVectorStore 替代"
+            )
         except Exception as e:
             logger.error(f"向量存储初始化失败: {e}")
             raise

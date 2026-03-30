@@ -54,6 +54,11 @@ class EmbeddingEngine:
             self._dimension = self._model.get_sentence_embedding_dimension()
             logger.info(f"模型加载成功，向量维度: {self._dimension}")
             
+        except ImportError:
+            raise ImportError(
+                "sentence-transformers 未安装。请安装: pip install sentence-transformers\n"
+                "或在初始化时使用 use_mock=True 使用 Mock 引擎"
+            )
         except Exception as e:
             logger.error(f"加载Embedding模型失败: {e}")
             raise
@@ -159,7 +164,7 @@ class MockEmbeddingEngine:
         return self._dimension
 
 
-def get_embedding_engine(use_mock: bool = False, **kwargs) -> EmbeddingEngine:
+def get_embedding_engine(use_mock: bool = False, **kwargs):
     """
     获取嵌入引擎实例
     
