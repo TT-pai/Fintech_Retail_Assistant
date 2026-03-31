@@ -335,7 +335,7 @@ class KnowledgeGraph:
 
 
 def build_default_knowledge_graph() -> KnowledgeGraph:
-    """构建默认知识图谱"""
+    """构建默认知识图谱（仅用于离线/测试环境）"""
     kg = KnowledgeGraph()
     
     kg.add_concept("白酒", "白酒行业概念板块")
@@ -368,5 +368,107 @@ def build_default_knowledge_graph() -> KnowledgeGraph:
     kg.save()
     
     logger.info("默认知识图谱构建完成")
+    
+    return kg
+
+
+def build_full_knowledge_graph(force_refresh: bool = False, skip_realtime: bool = True, quick_mode: bool = True) -> KnowledgeGraph:
+    """
+    构建全A股知识图谱
+    
+    Args:
+        force_refresh: 是否强制刷新数据
+        skip_realtime: 是否跳过实时行情数据（实时数据获取较慢，默认跳过）
+        quick_mode: 是否使用快速模式（仅获取股票列表，不获取行业概念详细数据，默认True）
+        
+    Returns:
+        包含全A股数据的知识图谱
+    """
+    kg = KnowledgeGraph()
+    
+    try:
+        # 导入市场数据工具
+        from tools.market_data import MarketDataTool
+        
+        logger.info("开始构建全A股知识图谱...")
+        
+        # 获取市场数据
+        market_tool = MarketDataTool()
+        
+        if quick_mode:
+            logger.info("使用快速模式，仅获取股票基本信息...")
+            data = market_tool.quick_build(force_refresh=force_refresh)
+        else:
+            logger.info("使用完整模式，获取全部数据（可能较慢）...")
+            data = market_tool.build_knowledge_graph_data(
+                force_refresh=force_refresh,
+                include_realtime=not skip_realtime
+            )
+        
+        # 添加行业概念节点
+        logger.info("添加行业节点...")
+        industries = data.get("industries", {})
+        for industry_name, codes in industries.items():
+            kg.add_concept(industry_name, f"{industry_name}行业板块")
+        logger.info(f"已添加 {len(industries)} 个行业节点")
+        
+        # 添加概念板块节点
+        logger.info("添加概念节点...")
+        concepts = data.get("concepts", {})
+        for concept_name, codes in concepts.items():
+            kg.add_concept(concept_name, f"{concept_name}概念板块")
+        logger.info(f"已添加 {len(concepts)} 个概念节点")
+        
+        # 添加公司节点
+        logger.info("添加公司节点...")
+        stocks = data.get("stocks", [])
+        for i, stock in enumerate(stocks):
+            if i % 500 == 0:
+                logger.info(f"已添加 {i}/{len(stocks)} 个公司节点")
+            kg.add_company(
+                code=stock["code"],
+                name=stock["name"],
+                industry=None,  # 行业通过关系连接
+                market_cap=stock.get("market_cap", 0),
+                pe_ratio=stock.get("pe_ratio", 0)
+            )
+        logger.info(f"已添加 {len(stocks)} 个公司节点")
+        
+        # 建立公司-行业关系
+        logger.info("建立公司-行业关系...")
+        relation_count = 0
+        for industry_name, codes in industries.items():
+            for code in codes:
+                # 通过代码查找公司名称
+                stock_info = next((s for s in stocks if s["code"] == code), None)
+                if stock_info:
+                    kg.link_company_to_concept(stock_info["name"], industry_name)
+                    relation_count += 1
+        logger.info(f"已建立 {relation_count} 条公司-行业关系")
+        
+        # 建立公司-概念关系
+        logger.info("建立公司-概念关系...")
+        relation_count = 0
+        for concept_name, codes in concepts.items():
+            for code in codes:
+                stock_info = next((s for s in stocks if s["code"] == code), None)
+                if stock_info:
+                    kg.link_company_to_concept(stock_info["name"], concept_name)
+                    relation_count += 1
+        logger.info(f"已建立 {relation_count} 条公司-概念关系")
+        
+        # 保存图谱
+        logger.info("保存知识图谱...")
+        kg.save()
+        
+        stats = kg.get_graph_stats()
+        logger.info(f"全A股知识图谱构建完成: {stats['total_nodes']} 个节点, {stats['total_edges']} 条边")
+        
+    except ImportError:
+        logger.warning("市场数据工具未安装，使用默认知识图谱")
+        return build_default_knowledge_graph()
+    except Exception as e:
+        logger.error(f"构建全A股知识图谱失败: {e}，使用默认知识图谱")
+        return build_default_knowledge_graph()
     
     return kg

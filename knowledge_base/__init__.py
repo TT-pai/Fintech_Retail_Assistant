@@ -38,12 +38,14 @@ class KnowledgeBaseManager:
         self.knowledge_graph = None
         self._use_mock = False
     
-    def initialize(self, use_mock_embedding: bool = False) -> None:
+    def initialize(self, use_mock_embedding: bool = False, force_refresh: bool = False, use_full_graph: bool = True) -> None:
         """
         初始化知识库
         
         Args:
             use_mock_embedding: 是否使用Mock嵌入引擎
+            force_refresh: 是否强制刷新知识图谱数据
+            use_full_graph: 是否使用全A股图谱（True）或默认少量股票图谱（False）
         """
         self._use_mock = use_mock_embedding
         
@@ -71,7 +73,7 @@ class KnowledgeBaseManager:
         self.load_all_knowledge()
         
         # 初始化知识图谱
-        self.init_knowledge_graph()
+        self.init_knowledge_graph(force_refresh=force_refresh, use_full_graph=use_full_graph)
         
         logger.info("知识库初始化完成")
     
@@ -155,10 +157,16 @@ class KnowledgeBaseManager:
             logger.error(f"加载知识库文件失败: {filepath}, {e}")
             return []
     
-    def init_knowledge_graph(self) -> None:
-        """初始化知识图谱"""
+    def init_knowledge_graph(self, force_refresh: bool = False, use_full_graph: bool = True) -> None:
+        """
+        初始化知识图谱
+        
+        Args:
+            force_refresh: 是否强制刷新数据
+            use_full_graph: 是否使用全A股图谱（True）或默认少量股票图谱（False）
+        """
         try:
-            from rag.knowledge_graph import KnowledgeGraph, build_default_knowledge_graph
+            from rag.knowledge_graph import KnowledgeGraph, build_default_knowledge_graph, build_full_knowledge_graph
             
             graph_path = os.path.join(
                 os.path.dirname(self.knowledge_base_path), 
@@ -168,9 +176,35 @@ class KnowledgeBaseManager:
             
             kg = KnowledgeGraph(storage_path=graph_path)
             
-            # 如果图谱为空，构建默认图谱
-            if kg.graph.number_of_nodes() == 0:
-                kg = build_default_knowledge_graph()
+            # 判断是否需要重新构建图谱
+            need_rebuild = force_refresh or kg.graph.number_of_nodes() == 0
+            
+            # 检查图谱数据是否过期（超过24小时）
+            if not need_rebuild and kg.graph.number_of_nodes() > 0:
+                import os
+                nodes_file = os.path.join(graph_path, "nodes.json")
+                if os.path.exists(nodes_file):
+                    import json
+                    from datetime import datetime, timedelta
+                    with open(nodes_file, "r", encoding="utf-8") as f:
+                        nodes_data = json.load(f)
+                        if nodes_data:
+                            created_at = nodes_data[0].get("created_at", "")
+                            if created_at:
+                                try:
+                                    created_time = datetime.fromisoformat(created_at)
+                                    if datetime.now() - created_time > timedelta(hours=24):
+                                        need_rebuild = True
+                                        logger.info("知识图谱数据已过期，将自动更新")
+                                except:
+                                    pass
+            
+            if need_rebuild:
+                if use_full_graph:
+                    logger.info("开始构建全A股知识图谱...")
+                    kg = build_full_knowledge_graph(force_refresh=force_refresh)
+                else:
+                    kg = build_default_knowledge_graph()
             
             self.knowledge_graph = kg
             logger.info(f"知识图谱初始化完成，节点数: {kg.graph.number_of_nodes()}")
@@ -210,18 +244,20 @@ class KnowledgeBaseManager:
         return stats
 
 
-def init_knowledge_base(use_mock: bool = False) -> KnowledgeBaseManager:
+def init_knowledge_base(use_mock: bool = False, force_refresh: bool = False, use_full_graph: bool = True) -> KnowledgeBaseManager:
     """
     初始化知识库（便捷函数）
     
     Args:
         use_mock: 是否使用Mock引擎
+        force_refresh: 是否强制刷新知识图谱数据
+        use_full_graph: 是否使用全A股图谱（True）或默认少量股票图谱（False）
         
     Returns:
         知识库管理器
     """
     manager = KnowledgeBaseManager()
-    manager.initialize(use_mock_embedding=use_mock)
+    manager.initialize(use_mock_embedding=use_mock, force_refresh=force_refresh, use_full_graph=use_full_graph)
     return manager
 
 
