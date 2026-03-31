@@ -10,8 +10,8 @@ import time
 import streamlit as st
 from loguru import logger
 
-# 添加项目路径
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# 添加项目路径 (pages目录需要向上两级到达项目根目录)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config.settings import get_config
 from graph.workflow import InvestmentWorkflow
