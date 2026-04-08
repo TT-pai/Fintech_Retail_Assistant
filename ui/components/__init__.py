@@ -12,7 +12,8 @@ from ui.components.cards import (
     render_stock_card,
     render_analysis_card,
     render_risk_card,
-    render_source_card
+    render_source_card,
+    render_debate_card
 )
 from ui.components.chat import (
     render_chat_message,
@@ -32,6 +33,7 @@ __all__ = [
     "render_analysis_card",
     "render_risk_card",
     "render_source_card",
+    "render_debate_card",
     "render_chat_message",
     "render_chat_input",
     "render_sources_panel"

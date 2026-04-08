@@ -41,9 +41,13 @@ class SentimentAnalyst(BaseAgent):
         """执行情绪分析"""
         basic_info = data.get("basic_info", {})
         news_list = data.get("news", [])
+        sentiment_data = data.get("sentiment", {})  # 获取情绪数据
         
         # 构建新闻摘要
         news_summary = self._summarize_news(news_list)
+        
+        # 构建情绪数据摘要
+        sentiment_summary = self._format_sentiment_data(sentiment_data)
         
         analysis_prompt = f"""
 请对以下股票进行深入的市场情绪分析：
@@ -54,21 +58,24 @@ class SentimentAnalyst(BaseAgent):
 当前价格: {basic_info.get('price', 'N/A')} 元
 涨跌幅: {basic_info.get('change_percent', 'N/A')}%
 成交量: {basic_info.get('volume', 'N/A')}
-换手率数据: 暂无
 
 【近期新闻摘要】（前5条）
 {news_summary}
+
+【市场情绪数据】
+{sentiment_summary}
 
 【市场表现】
 今日涨跌: {basic_info.get('change_percent', 0):.2f}%
 成交活跃度: {"活跃" if basic_info.get('volume', 0) > 10000000 else "一般"}
 
 **请按以下要求进行深入分析：**
-1. 分析新闻事件对投资者情绪的影响机制
-2. 解读涨跌幅和成交量反映的市场情绪
-3. 判断当前情绪所处的阶段（恐慌/贪婪周期）
-4. 评估情绪反转的可能性和触发条件
-5. 说明情绪因素对短期股价的可能影响
+1. 综合情绪数据分析当前市场情绪状态
+2. 解读新闻事件对投资者情绪的影响机制
+3. 分析情绪分数和涨跌幅反映的市场情绪
+4. 判断当前情绪所处的阶段（恐慌/贪婪周期）
+5. 评估情绪反转的可能性和触发条件
+6. 说明情绪因素对短期股价的可能影响
 
 请按以下结构输出（JSON格式）：
 {{
@@ -103,15 +110,16 @@ class SentimentAnalyst(BaseAgent):
                 
                 result = json.loads(json_str)
             except (json.JSONDecodeError, ValueError, KeyError) as e:
+                # 如果解析失败，使用原始情绪数据
                 result = {
                     "summary": response[:500],
-                    "overall_sentiment": "中性",
-                    "sentiment_score": 0,
-                    "news_sentiment": "中性",
-                    "key_drivers": [],
-                    "contrarian_signal": "否",
-                    "confidence": 0.5,
-                    "recommendation": "建议综合其他分析"
+                    "overall_sentiment": sentiment_data.get("overall_sentiment", "中性"),
+                    "sentiment_score": sentiment_data.get("sentiment_score", 0),
+                    "news_sentiment": sentiment_data.get("news_sentiment", "中性"),
+                    "key_drivers": sentiment_data.get("key_drivers", []),
+                    "contrarian_signal": sentiment_data.get("contrarian_signal", "否"),
+                    "confidence": sentiment_data.get("confidence", 0.5),
+                    "recommendation": sentiment_data.get("recommendation", "建议综合其他分析")
                 }
             
             self.update_state(
@@ -125,8 +133,8 @@ class SentimentAnalyst(BaseAgent):
         except Exception as e:
             return {
                 "summary": f"情绪分析失败: {str(e)}",
-                "overall_sentiment": "未知",
-                "sentiment_score": 0,
+                "overall_sentiment": sentiment_data.get("overall_sentiment", "未知"),
+                "sentiment_score": sentiment_data.get("sentiment_score", 0),
                 "news_sentiment": "中性",
                 "key_drivers": [],
                 "contrarian_signal": "否",
@@ -145,3 +153,21 @@ class SentimentAnalyst(BaseAgent):
             summaries.append(f"{i}. {title}")
         
         return "\n".join(summaries)
+    
+    def _format_sentiment_data(self, sentiment_data: Dict) -> str:
+        """格式化情绪数据"""
+        if not sentiment_data:
+            return "暂无情绪数据"
+        
+        return f"""
+整体情绪: {sentiment_data.get('overall_sentiment', '未知')}
+情绪分数: {sentiment_data.get('sentiment_score', 0):.2f}
+新闻情绪: {sentiment_data.get('news_sentiment', '未知')}
+社交媒体热度: {sentiment_data.get('social_media_heat', 0)}/100
+市场氛围: {sentiment_data.get('market_mood', '未知')}
+投资者情绪: {sentiment_data.get('investor_sentiment', '未知')}
+散户情绪: {sentiment_data.get('retail_sentiment', '未知')}
+逆向信号: {sentiment_data.get('contrarian_signal', '否')} {sentiment_data.get('contrarian_reason', '')}
+关键驱动因素: {', '.join(sentiment_data.get('key_drivers', []))}
+短期影响预测: {sentiment_data.get('short_term_impact', '未知')}
+"""

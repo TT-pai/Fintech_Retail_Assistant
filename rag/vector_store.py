@@ -291,9 +291,23 @@ class MockVectorStore:
         return doc_ids
     
     def similarity_search(self, query: str, k: int = 5, filter: Optional[Dict] = None) -> List[Dict]:
-        # 简单返回前k个文档
+        # 应用过滤条件
+        filtered_docs = []
+        for doc_id, doc in self._documents.items():
+            # 检查是否满足过滤条件
+            if filter:
+                match = True
+                for key, value in filter.items():
+                    if doc.metadata.get(key) != value:
+                        match = False
+                        break
+                if not match:
+                    continue
+            filtered_docs.append((doc_id, doc))
+        
+        # 返回前k个
         results = []
-        for doc_id, doc in list(self._documents.items())[:k]:
+        for doc_id, doc in filtered_docs[:k]:
             results.append({
                 "doc_id": doc_id,
                 "content": doc.content,

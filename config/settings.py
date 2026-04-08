@@ -2,42 +2,52 @@
 智汇投研 - 配置管理模块
 支持多LLM提供商配置
 """
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Literal, Dict, Any
-from functools import lru_cache
+from dotenv import load_dotenv
+import os
+
+# 确保 .env 文件被加载（相对于项目根目录）
+_env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(_env_path)
 
 
 class LLMConfig(BaseSettings):
     """LLM配置"""
-    provider: Literal["openai", "zhipuai", "deepseek", "qwen", "ollama"] = "openai"
+    model_config = SettingsConfigDict(
+        env_prefix="",
+        extra="ignore"  # 忽略未定义的环境变量
+    )
+
+    provider: Literal["openai", "anthropic", "zhipuai", "deepseek", "qwen", "ollama"] = "openai"
     
+    # Anthropic (通过 OpenAI 兼容接口)
+    anthropic_api_key: str = ""
+    anthropic_base_url: str = "https://api.anthropic.com/v1"
+
     # OpenAI
     openai_api_key: str = ""
     openai_base_url: str = "https://api.openai.com/v1"
-    
+
     # 智谱AI
     zhipuai_api_key: str = ""
-    
+
     # DeepSeek
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com/v1"
-    
+
     # 通义千问
     dashscope_api_key: str = ""
-    
+
     # Ollama本地
     ollama_base_url: str = "http://localhost:11434"
-    
+
     # 模型选择（可在 .env 中配置覆盖）
     # 可选模型: qwen3-max, qwen3-coder-plus, qwen3-vl-plus, qwen3-235b-a22b-thinking-2507,
     #          deepseek-v3.2, kimi-k2, kimi-k2-0905, iflow-rome-30ba3b
     deep_think_model: str = "qwen3-max"      # 用于复杂推理的模型
     quick_think_model: str = "qwen3-32b"  # 用于快速任务的模型
-    
-    class Config:
-        env_file = ".env"
-        env_prefix = ""
 
 
 class AgentConfig(BaseSettings):
@@ -61,15 +71,27 @@ class AppConfig(BaseSettings):
     app_name: str = "智汇投研"
     app_version: str = "0.1.0"
     debug: bool = True
-    
+
     llm: LLMConfig = Field(default_factory=LLMConfig)
     agent: AgentConfig = Field(default_factory=AgentConfig)
 
 
-@lru_cache()
+# 全局配置实例（延迟初始化）
+_config: AppConfig = None
+
+
 def get_config() -> AppConfig:
     """获取配置单例"""
-    return AppConfig()
+    global _config
+    if _config is None:
+        _config = AppConfig()
+    return _config
+
+
+def reset_config():
+    """重置配置（用于测试或重新加载）"""
+    global _config
+    _config = None
 
 
 # iFlow 可用模型列表
@@ -89,6 +111,10 @@ PROVIDER_MODELS: Dict[str, Dict[str, str]] = {
     "openai": {
         "deep_think": "qwen3-max",      # iFlow - 复杂推理任务
         "quick_think": "qwen3-32b"  # iFlow - 快速任务
+    },
+    "anthropic": {
+        "deep_think": "claude-sonnet-4-6",  # Anthropic Claude
+        "quick_think": "claude-haiku-4-5"
     },
     "zhipuai": {
         "deep_think": "glm-4-flash",

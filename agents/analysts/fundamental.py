@@ -6,7 +6,7 @@ from typing import Dict, Any
 from langchain_core.messages import HumanMessage, SystemMessage
 import json
 
-from agents.base import BaseAgent, AnalysisResult
+from agents.base import BaseAgent
 
 
 FUNDAMENTAL_SYSTEM_PROMPT = """你是一位资深的基本面分析师，拥有20年A股投资研究经验。

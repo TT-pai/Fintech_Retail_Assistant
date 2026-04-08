@@ -307,11 +307,6 @@ def get_prompt(agent_name: str, context: Optional[Dict[str, Any]] = None) -> str
     return base_prompt
 
 
-def get_available_agents() -> list:
-    """获取可用的Agent列表"""
-    return list(SYSTEM_PROMPTS.keys())
-
-
 def get_intent_classification_prompt() -> str:
     """获取意图分类Prompt"""
     return """分析用户输入，判断意图类型：

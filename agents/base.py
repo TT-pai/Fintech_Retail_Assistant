@@ -50,6 +50,14 @@ class BaseAgent(ABC):
                 base_url=config.llm.openai_base_url,
                 temperature=0.7
             )
+        elif config.llm.provider == "anthropic":
+            # Anthropic 通过 OpenAI 兼容接口（如阿里云 DashScope）
+            return ChatOpenAI(
+                model=model_name,
+                api_key=config.llm.anthropic_api_key or config.llm.openai_api_key,
+                base_url=config.llm.anthropic_base_url or config.llm.openai_base_url,
+                temperature=0.7
+            )
         elif config.llm.provider == "zhipuai":
             from langchain_community.chat_models import ChatZhipuAI
             return ChatZhipuAI(
@@ -136,11 +144,4 @@ class BaseAgent(ABC):
         self.state.reasoning = reasoning
 
 
-class AnalysisResult(BaseModel):
-    """分析结果模型"""
-    summary: str = Field(description="分析摘要")
-    key_findings: list = Field(description="关键发现")
-    risks: list = Field(default_factory=list, description="风险点")
-    opportunities: list = Field(default_factory=list, description="机会点")
-    confidence: float = Field(ge=0, le=1, description="置信度0-1")
-    recommendation: str = Field(description="建议")
+

@@ -13,10 +13,16 @@ from dotenv import load_dotenv
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config.settings import get_config
+# 加载环境变量（确保最新配置）
+load_dotenv()
+
+from config.settings import get_config, reset_config
 from graph.workflow import InvestmentWorkflow
 from knowledge_base import init_knowledge_base
 from memory import ConversationManager, UserProfileManager
+
+# 重置配置缓存，确保加载最新配置
+reset_config()
 
 
 # 页面配置
@@ -93,7 +99,10 @@ def init_system():
     """初始化系统（缓存）"""
     # 加载环境变量
     load_dotenv()
-    
+
+    # 重置配置缓存，确保加载最新配置
+    reset_config()
+
     # 获取配置
     config = get_config()
     
@@ -116,8 +125,7 @@ def main():
     
     # 侧边栏
     with st.sidebar:
-        st.image("https://img.icons8.com/fluency/96/stock.png", width=80)
-        st.title("智汇投研Pro")
+        st.title("📈 智汇投研Pro")
         st.caption(f"版本: {config.app_version}")
         
         st.divider()
@@ -139,12 +147,6 @@ def main():
         if st.button("📊 深度分析", use_container_width=True):
             st.switch_page("pages/1_📈_深度分析.py")
         
-        if st.button("💬 智能问答", use_container_width=True):
-            st.switch_page("pages/2_💬_智能问答.py")
-        
-        if st.button("📚 知识溯源", use_container_width=True):
-            st.switch_page("pages/4_📚_知识溯源.py")
-        
         st.divider()
         
         # 系统信息
@@ -157,55 +159,24 @@ def main():
     
     st.divider()
     
-    # 快速搜索
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        stock_input = st.text_input(
-            "输入股票代码或名称",
-            placeholder="例如：600519、茅台、平安银行",
-            key="main_search"
-        )
-    
-    with col2:
-        st.write("")
-        st.write("")
-        analyze_btn = st.button("🔍 开始分析", use_container_width=True)
-    
     # 功能介绍卡片
     st.markdown("### 🌟 核心功能")
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("""
         <div class='card'>
             <h4>📊 深度分析</h4>
-            <p>多Agent协作分析<br>基本面+技术面+资金流</p>
+            <p>多Agent协作分析<br>基本面+技术面+资金流+研报观点<br>红蓝军辩论+风险评估</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
         <div class='card'>
-            <h4>💬 智能问答</h4>
-            <p>RAG知识增强<br>研报/财报/新闻检索</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class='card'>
             <h4>🎯 风险评估</h4>
-            <p>多维度风险量化<br>智能仓位建议</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown("""
-        <div class='card'>
-            <h4>📚 知识溯源</h4>
-            <p>知识图谱可视化<br>来源可追溯</p>
+            <p>多维度风险量化<br>智能仓位建议<br>投资决策辅助</p>
         </div>
         """, unsafe_allow_html=True)
     
