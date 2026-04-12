@@ -120,6 +120,9 @@ def main():
         # 解析股票代码
         try:
             stock_code, stock_name = resolve_stock_input(stock_input)
+            # 保存到 session_state 供 render_node_result 使用
+            st.session_state["current_stock_code"] = stock_code
+            st.session_state["current_stock_name"] = stock_name
         except Exception as e:
             st.error(f"无法识别股票: {e}")
             return
@@ -229,8 +232,11 @@ def render_node_result(node_name: str, node_result: dict, accumulated: dict,
         with stock_info_container:
             stock_data = node_result.get("stock_data", {})
             basic_info = stock_data.get("basic_info", {})
+            # 优先使用用户解析的名称，其次使用 API 返回的名称
+            display_name = st.session_state.get("current_stock_name", basic_info.get('name', '未知'))
+            display_code = st.session_state.get("current_stock_code", basic_info.get('code', ''))
             if basic_info:
-                st.subheader(f"📊 {basic_info.get('name', '未知')} ({basic_info.get('code', '')})")
+                st.subheader(f"📊 {display_name} ({display_code})")
                 render_stock_card(basic_info)
     
     # 2. 基本面分析完成
@@ -317,10 +323,11 @@ def render_node_result(node_name: str, node_result: dict, accumulated: dict,
         try:
             trader_decision = accumulated.get("trader_decision", {})
             basic_info = accumulated.get("stock_data", {}).get("basic_info", {})
-            
+
+            # 从 session_state 获取股票信息
             record = {
-                "stock_code": stock_code,
-                "stock_name": stock_name or basic_info.get("name", "N/A"),
+                "stock_code": st.session_state.get("current_stock_code", ""),
+                "stock_name": st.session_state.get("current_stock_name", basic_info.get("name", "N/A")),
                 "date": time.strftime("%Y-%m-%d %H:%M"),
                 "decision": trader_decision.get("decision", "N/A")
             }
