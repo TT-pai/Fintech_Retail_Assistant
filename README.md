@@ -104,7 +104,7 @@ python -m knowledge_base
 ```
 fintech_retail_assistant/
 ├── agents/                    # Agent模块
-│   ├── base.py               # Agent基类（LLM调用、重试机制）
+│   ├── base.py               # Agent基类
 │   ├── analysts/             # 分析师团队
 │   │   ├── fundamental.py    # 基本面分析师
 │   │   ├── technical.py      # 技术分析师
@@ -118,14 +118,14 @@ fintech_retail_assistant/
 │       ├── portfolio_manager.py  # 交易员+投资组合经理
 │       └── risk_controller.py    # 风控官
 ├── rag/                      # RAG检索模块
-│   ├── embeddings.py         # 向量嵌入（支持Mock引擎）
-│   ├── vector_store.py       # 向量存储（ChromaDB）
+│   ├── embeddings.py         # 向量嵌入
+│   ├── vector_store.py       # 向量存储
 │   ├── retriever.py          # 检索器(基础/混合/GraphRAG)
 │   ├── reranker.py           # 重排序
 │   └── knowledge_graph.py    # 知识图谱（NetworkX）
 ├── knowledge_base/           # 知识库数据
 │   ├── __init__.py           # 知识库管理器
-│   ├── reports.json          # 研报数据（1600+条）
+│   ├── reports.json          # 研报数据
 │   ├── news.json             # 新闻数据
 │   ├── industry.json         # 行业信息
 │   ├── regulations.json      # 法规数据
@@ -136,38 +136,34 @@ fintech_retail_assistant/
 │   └── README.md             # 脚本使用说明
 ├── prompts/                  # Prompt沉淀目录
 │   ├── daily/                # 每日Prompt整理
-│   ├── patterns/             # 表达模式（长期资产）
+│   ├── patterns/             # 表达模式
 │   └── README.md             # Prompt沉淀规范
 ├── memory/                   # 记忆系统
 │   ├── MEMORY.md             # 记忆索引
 │   └── conversation.py       # 对话管理
 ├── tools/                    # 工具模块
-│   ├── stock_data.py         # A股数据获取（Yahoo Finance）
+│   ├── stock_data.py         # A股数据获取
 │   ├── market_data.py        # 市场数据工具
 │   └── cli/                  # CLI工具目录
 ├── mcp/                      # MCP服务配置
 │   └── README.md             # MCP使用说明
 ├── graph/                    # LangGraph工作流
-│   └── workflow.py           # 主工作流定义（12节点）
+│   └── workflow.py           # 主工作流定义
 ├── ui/                       # 前端界面
-│   ├── app.py               # Streamlit主应用（首页）
+│   ├── app.py               # Streamlit主应用
 │   ├── components/          # UI组件
-│   │   ├── cards.py         # 卡片组件（分析师结果展示）
+│   │   ├── cards.py         # 卡片组件
 │   │   ├── charts.py        # 图表组件
 │   │   └── chat.py          # 聊天组件
 │   └── pages/               # 多页面
-│       ├── 1_📈_深度分析.py   # 深度分析页（完整投资流程）
-│       ├── 2_💬_智能问答.py   # 智能问答页（RAG问答）
-│       └── 4_📚_知识溯源.py   # 知识溯源页（图谱可视化）
+│       └── 📈_深度分析.py   # 深度分析页
 ├── config/                   # 配置
 │   ├── settings.py          # 多LLM提供商配置
 │   └── prompts.py           # Prompt模板库
 ├── data/                     # 数据存储
-│   ├── chroma/              # 向量数据库（ChromaDB）
+│   ├── chroma/              # 向量数据库
 │   └── knowledge_graph/     # 知识图谱数据
 ├── .claude/                  # Claude Code配置
-├── CLAUDE.md                 # 项目指引（给Claude Code）
-├── AGENTS.md                 # Agent行为规则定义
 ├── main.py                   # 命令行入口
 ├── requirements.txt          # 依赖清单
 └── README.md                 # 项目说明
@@ -229,18 +225,6 @@ fetch_data → analyze_fundamental → analyze_technical → analyze_sentiment
 - 研报检索在辩论前执行（为辩论提供参考）
 - 辩论结果传入交易决策
 
-## 支持的LLM提供商
-
-| 提供商 | 模型示例 | 特点 |
-|--------|----------|------|
-| **iFlow** | qwen3-max, deepseek-v3.2, kimi-k2 | 推荐，已预配置，多模型选择 |
-| OpenAI | gpt-4o | 功能强大 |
-| Anthropic | claude-sonnet-4-6 | Claude系列 |
-| 智谱AI | glm-4-flash | 免费额度 |
-| DeepSeek | deepseek-chat | 性价比高 |
-| 通义千问 | qwen-turbo | 中文优化 |
-| Ollama | llama3:8b | 本地部署 |
-
 ## 配置说明
 
 ### 模型配置
@@ -251,7 +235,7 @@ OPENAI_API_KEY=your_key            # API密钥
 OPENAI_BASE_URL=  # API地址
 
 deep_think_model=qwen3-max         # 复杂推理任务
-quick_think_model=deepseek-v3.2    # 快速任务（预留）
+quick_think_model=deepseek-v3.2    # 快速任务
 ```
 
 ### Embedding配置
