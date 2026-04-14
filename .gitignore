@@ -53,3 +53,9 @@ data/knowledge_graph/
 # 缓存
 __pycache__/
 *.pyc
+
+# 视频文件（超过 GitHub 限制）
+*.mp4
+*.webm
+*.mov
+*.avi

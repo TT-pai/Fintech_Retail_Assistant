@@ -82,12 +82,6 @@ cp .env.example .env
 # 编辑 .env 文件，填入你的API密钥
 ```
 
-推荐使用 **iFlow 心流模型**（已预配置），支持多种模型：
-- `qwen3-max` - 复杂推理任务（Agent分析、辩论、决策）
-- `deepseek-v3.2` - 快速任务（意图识别、问答）
-- `kimi-k2` - Kimi模型
-- `qwen3-235b-a22b-thinking-2507` - 深度思考模型
-
 ### 3. 运行
 
 **命令行模式:**
@@ -254,7 +248,7 @@ fetch_data → analyze_fundamental → analyze_technical → analyze_sentiment
 # .env 文件配置
 provider=openai                    # 提供商选择
 OPENAI_API_KEY=your_key            # API密钥
-OPENAI_BASE_URL=https://apis.iflow.cn/v1  # API地址
+OPENAI_BASE_URL=  # API地址
 
 deep_think_model=qwen3-max         # 复杂推理任务
 quick_think_model=deepseek-v3.2    # 快速任务（预留）
