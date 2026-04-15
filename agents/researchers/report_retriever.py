@@ -216,17 +216,20 @@ class ReportRetrieverAgent(BaseAgent):
         return "\n".join(formatted)
     
     def _extract_sources(self, reports: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """提取来源信息"""
+        """提取来源信息（包含完整研报内容）"""
         sources = []
         for report in reports:
             metadata = report.get("metadata", {})
             sources.append({
                 "institution": metadata.get("source", "未知"),
+                "source": metadata.get("source", "未知"),  # 兼容两种字段名
                 "date": metadata.get("date", "未知"),
                 "rating": metadata.get("rating", "未知"),
                 "target_price": metadata.get("target_price"),
                 "title": metadata.get("title", ""),
-                "doc_id": report.get("doc_id")
+                "doc_id": report.get("doc_id"),
+                "content": report.get("content", ""),  # 完整研报内容
+                "author": metadata.get("author", "")
             })
         return sources
     

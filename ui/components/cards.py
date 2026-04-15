@@ -145,18 +145,37 @@ def render_risk_card(risk_assessment: Dict[str, Any]) -> None:
 def render_source_card(sources: List[Dict[str, Any]]) -> None:
     """
     渲染来源信息卡片
-    
+
     Args:
         sources: 来源信息列表
     """
     with st.expander("📚 知识来源", expanded=False):
         for i, source in enumerate(sources, 1):
+            # 来源基本信息
             st.markdown(f"""
-            **[{i}] {source.get('institution', '未知来源')}**
+            **[{i}] {source.get('institution', source.get('source', '未知来源'))}**
             - 日期: {source.get('date', '未知')}
             - 评级: {source.get('rating', '未知')}
-            - 标题: {source.get('title', '')[:50]}...
+            - 标题: {source.get('title', 'N/A')}
             """)
+
+            # 查看原文按钮
+            content = source.get('content', '')
+            if content:
+                # 使用 session_state 来控制展开状态
+                expand_key = f"expand_source_{i}"
+                if st.button(f"📖 查看原文", key=expand_key):
+                    # 在按钮下方展示原文
+                    with st.container():
+                        st.markdown("---")
+                        st.markdown("**📋 研报全文**:")
+                        st.markdown(f"""
+                        <div style='background: #f5f5f5; padding: 15px; border-radius: 8px;
+                        font-size: 14px; line-height: 1.6; white-space: pre-wrap;'>
+                        {content}
+                        </div>
+                        """, unsafe_allow_html=True)
+
             st.divider()
 
 
@@ -581,6 +600,11 @@ def render_debate_card(debate_result: Dict[str, Any]) -> None:
 
     st.divider()
 
+    # ========== 新增：置信度变化折线图 ==========
+    _render_confidence_chart(debate_history)
+
+    st.divider()
+
     # 展示每一轮辩论
     for record in debate_history:
         round_num = record.get("round", 1)
@@ -639,6 +663,56 @@ def render_debate_card(debate_result: Dict[str, Any]) -> None:
     # 辩论轮数
     total_rounds = debate_result.get("total_rounds", 0)
     st.caption(f"共进行 {total_rounds} 轮辩论")
+
+
+def _render_confidence_chart(debate_history: List[Dict[str, Any]]) -> None:
+    """
+    渲染置信度变化折线图
+
+    Args:
+        debate_history: 辩论历史记录
+    """
+    st.markdown("### 📈 置信度变化趋势")
+    st.markdown("追踪辩论过程中双方置信度的演变")
+
+    # 提取每轮的置信度数据
+    rounds = []
+    bull_confidences = []
+    bear_confidences = []
+
+    for record in debate_history:
+        round_num = record.get("round", 1)
+        debate_type = record.get("type", "opening")
+
+        rounds.append(f"第{round_num}轮")
+
+        if debate_type == "opening":
+            bull_conf = record.get("bull_arguments", {}).get("confidence_level", 0)
+            bear_conf = record.get("bear_arguments", {}).get("confidence_level", 0)
+        else:
+            bull_conf = record.get("bull_rebuttal", {}).get("confidence_after_debate", 0)
+            bear_conf = record.get("bear_rebuttal", {}).get("confidence_after_debate", 0)
+
+        bull_confidences.append(bull_conf * 100)
+        bear_confidences.append(bear_conf * 100)
+
+    # 创建折线图
+    import pandas as pd
+
+    df = pd.DataFrame({
+        "辩论轮次": rounds,
+        "看多置信度": bull_confidences,
+        "看空置信度": bear_confidences
+    })
+
+    # 使用 Streamlit 的折线图
+    st.line_chart(
+        df.set_index("辩论轮次"),
+        use_container_width=True
+    )
+
+    # 解读提示
+    st.caption("💡 图表解读：置信度变化反映双方在辩论过程中的立场坚定程度。上升表示论点更有说服力，下降表示被对方有效反驳。")
 
 
 def _render_bull_arguments(args: Dict[str, Any]) -> None:
